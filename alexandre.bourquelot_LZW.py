@@ -122,6 +122,8 @@ def compress(filepath):
 
 
 def uncompress(filepath):
+    p = Path(filepath)
+    toto = p.stem
 
     # recuperer le dico et le mettre dans une array
 
@@ -165,8 +167,8 @@ def uncompress(filepath):
             output += buffer
             buffer = reverse_dict[input]
 
-
-    print(output)
+    with open(toto + ".txt", 'w') as out:
+        out.write(output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
