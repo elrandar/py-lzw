@@ -10,7 +10,6 @@ def truncate(number, digits):
 
 
 def binary(str, nb_bits):
-    print(str)
     binstr = bin(int(str))[2:]
     while (len(binstr) < nb_bits):
         binstr = '0' + binstr
@@ -21,24 +20,23 @@ def build_dico(filestring, filepath):
     ascii_occ = [0] * 256
     ascii_occ[ord('%')] = 1
 
+    csvRow = []
     charnb = 0
+    if (filestring[len(filestring) - 1] == '\n'):
+        filestring = filestring[:-1]
     for char in filestring:
-        if (char != '\n'):
-            ascii_occ[ord(char)] = 1
-            charnb += 1
+        ascii_occ[ord(char)] = 1
+        charnb += 1
     dict = {}
     counter = 0
-    str = ""
     for i in range(256):
         if (ascii_occ[i] == 1):
-            if str != "":
-                str += ','
-            str += chr(i)
+            csvRow.append(chr(i))
             dict[chr(i)] = counter
             counter += 1
-    str += '\n'
     f = open(filepath + "_dico.csv", "w")
-    f.write(str)
+    writer = csv.writer(f)
+    writer.writerow(csvRow)
     f.close()
 
     return dict, counter - 1, charnb
@@ -73,7 +71,7 @@ def compress(filepath):
             LZWrow = [None] * 5
             LZWrow[1] = input
 
-            if (input == '\n'):
+            if (input == '\n' and f.tell() >= chars_in_input):
                 input = f.read(1)
                 continue
 
@@ -117,18 +115,58 @@ def compress(filepath):
     output += '\n' + "Size before LZW compression: " + str(nb_bits_before) + " bits\n"
     output += "Size after LZW compression: " + str(nb_bits_comp) + " bits\n"
     output += "Compression ratio: " + str(ratio)
-    print(output)
 
     f = open(toto + ".lzw", "w")
     f.write(output)
-    f.close
+    f.close()
 
-    print(nb_bits_before)
-    print(nb_bits_comp)
 
 def uncompress(filepath):
-    pass
 
+    # recuperer le dico et le mettre dans une array
+
+    reverse_dict = []
+    dict = {}
+
+    with open(filepath[:-4] + "_dico.csv", 'r') as dicof:
+        reader = csv.reader(dicof)
+        for row in reader:
+            counter = 0
+            for elm in row:
+                reverse_dict.append(elm)
+                dict[elm] = counter
+                counter += 1
+
+    nb_bits = (counter - 1).bit_length()
+
+    output = ""
+    buffer = ""
+    with open(filepath, 'r') as file:
+        while True:
+            input = file.read(nb_bits)
+            if input == '\n':
+                continue
+            if input == "":
+                output += buffer
+                break
+            input = int(input, 2)
+
+            if reverse_dict[input] == '%':
+                nb_bits += 1
+                continue
+
+            if buffer != "":
+                testword = buffer + reverse_dict[input][0]
+                if testword not in dict:
+                    counter += 1
+                    dict[testword] = counter
+                    reverse_dict.append(testword)
+
+            output += buffer
+            buffer = reverse_dict[input]
+
+
+    print(output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
